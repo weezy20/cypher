@@ -1,60 +1,66 @@
-#![allow(unused, dead_code)]
-// Testing symmetric ciphers
-// Caesar and Vigenere cypher
-use std::fmt::{Debug, Display};
-use rand::prelude::*;
+use std::vec;
+
+use rand::{thread_rng, Rng};
+
 fn main() {
-    // let a = 'a';
-    // print(a as usize);
-    // print_char(127);
-    // print_char(139);
-    // a = 3 = 0011
-    // a >> 1 = 0001
-    // should print 1
-}
-
-struct Cypher {
-    data: String,
-    secret_key: u8,
-    cipher: Option<String>,
-}
-impl Cypher {
-    fn new(data: &str) -> Self {
-        let mut rng = thread_rng();
-        let data = String::from(data);
-        let secret_key = rng.gen_range(1..=25);
-        Self {
-            data,
-            secret_key,
-            cipher: None,
-        }
+    assert_eq!('c', char_shift('z', 3));
+    let names = vec!["Joseph", "Matthew", "Jesus"];
+    let mut rng = thread_rng();
+    let shift = rng.gen_range(1..=25);
+    println!("Caesar shift value generated: {}", shift);
+    for name in names {
+        let encrypted = encrypt_caesar(name, shift);
+        println!("{} encrypted to {}", name, encrypted);
+        println!("Unencrypting {}: {}\n", decrypt_caesar(&encrypted, key: shift));
     }
-    fn caesar_cipher(self) -> Self {
-        let mut cipher = String::with_capacity(self.data.len());
-        for (i, c) in self.data.char_indices() {
-            
-            let c_u8 = c as u8;
-            let shift = c_u8 + self.secret_key;
-            
-
-        }
-        Self {
-            data: self.data,
-            secret_key: self.secret_key,
-            cipher: Some(cipher)
-        }
-    }
+    
 }
-
-fn print_char(a: usize) {
-    let a_u8 = a as u8;
-    if a_u8 > 127 {
-        println!("Not printable");
-        return;
+fn decrypt_caesar(cypher: &str, key: u8) -> String { 
+    let mut data = String::with_capacity(cypher.len());
+    for ch in cypher.chars() {
+        data.push(char_shift(ch, -1*key));
     }
-    println!("printing {} as char --> {}", a, a_u8 as char);
+    data
 }
-
-fn print<T: Display>(a: T) {
-    println!("printing -> {}", a);
+fn encrypt_caesar(data: &str, shift: i8) -> String {
+    if shift == 0 || shift > 25 {
+        println!(
+            "Cannot apply caesar cipher with a shift value of {} ",
+            shift
+        );
+        return String::from(data);
+    }
+    let mut cypher = String::with_capacity(data.len());
+    // There is a mode of operation and a permutation
+    // The mode of operation here is to go through each letter of this string
+    // and the permutation is to shift by a certain amount
+    for ch in data.chars() {
+        cypher.push(char_shift(ch, shift));
+    }
+    cypher
+}
+fn char_shift(ch: char, shift: i8) -> char {
+    if shift == 0 || shift > 25 {
+        return ch;
+    }
+    let mut res = ch;
+    let ch_i8 = ch as i8;
+    match ch_i8 {
+        65..=90 => {
+            if ch_i8 + shift > 90 {
+                res = (ch_i8 + shift - 90 + 64) as char;
+            } else {
+                res = (ch_i8 + shift) as char;
+            }
+        }
+        97..=122 => {
+            if ch_i8 + shift > 122 {
+                res = (ch_i8 + shift - 122 + 96) as char;
+            } else {
+                res = (ch_i8 + shift) as char;
+            }
+        }
+        _ => { /* return the same character that it receieved */ }
+    }
+    res
 }
