@@ -1,24 +1,41 @@
-use std::vec;
+#![deny(clippy::pedantic)]
+
+use std::{collections::HashMap, env};
 
 use rand::{thread_rng, Rng};
 
 fn main() {
-    assert_eq!('c', char_shift('z', 3));
-    let names = vec!["Joseph", "Matthew", "Jesus"];
-    let mut rng = thread_rng();
-    let shift = rng.gen_range(1..=25);
-    println!("Caesar shift value generated: {}", shift);
-    for name in names {
-        let encrypted = encrypt_caesar(name, shift);
-        println!("{} encrypted to {}", name, encrypted);
-        println!("Unencrypting {}: {}\n", decrypt_caesar(&encrypted, key: shift));
+    if env::args().any(|x| x == "trace" || x == "t") {
+        env::set_var("RUST_BACKTRACE", "1");
     }
-    
+    // assert_eq!('c', char_shift('z', 3));
+    let names = vec!["Joseph", "Matthew", "Jesus", "Zorba", "Abhishek"];
+    let mut rng = thread_rng();
+    let mut shift_map: HashMap<i8, bool> = HashMap::new();
+
+    for i in 1..=25 {
+        // populate our map with all possible shift values
+        shift_map.insert(i, false);
+    }
+    loop {
+        if shift_map.values().all(|shift_val| *shift_val == true) {
+            break;
+        }
+        let shift = rng.gen_range(1..=25);
+        // println!("Caesar shift value generated: {}", shift);
+        shift_map.insert(shift, true);
+
+        for &name in &names {
+            let encrypted = encrypt_caesar(name, shift);
+            // println!("{} encrypted to {}", name, encrypted);
+            assert_eq!(name, decrypt_caesar(&encrypted, shift));
+        }
+    }
 }
-fn decrypt_caesar(cypher: &str, key: u8) -> String { 
+fn decrypt_caesar(cypher: &str, key: i8) -> String {
     let mut data = String::with_capacity(cypher.len());
     for ch in cypher.chars() {
-        data.push(char_shift(ch, -1*key));
+        data.push(char_shift(ch, -key));
     }
     data
 }
@@ -45,22 +62,54 @@ fn char_shift(ch: char, shift: i8) -> char {
     }
     let mut res = ch;
     let ch_i8 = ch as i8;
-    match ch_i8 {
-        65..=90 => {
-            if ch_i8 + shift > 90 {
-                res = (ch_i8 + shift - 90 + 64) as char;
-            } else {
-                res = (ch_i8 + shift) as char;
+    match shift {
+        // Encryption phase
+        shift @ 0..=i8::MAX => {
+            match ch_i8 {
+                65..=90 => {
+                    // Logical operators short circuit in Rust so we can write this:
+                    if ch_i8.overflowing_add(shift).1
+                        || ch_i8.overflowing_add(shift).0 > 90
+                    {
+                        res = (ch_i8 + (shift - 90 + 64)) as u8 as char;
+                    } else {
+                        res = (ch_i8 + shift) as u8 as char;
+                    }
+                }
+                97..=122 => {
+                    if ch_i8.overflowing_add(shift).1
+                        || ch_i8.overflowing_add(shift).0 > 122
+                    {
+                        res = (ch_i8 + (shift - 122 + 96)) as u8 as char;
+                    } else {
+                        res = (ch_i8 + shift) as u8 as char;
+                    }
+                }
+                _ => { /* return the same character that it receieved */ }
             }
         }
-        97..=122 => {
-            if ch_i8 + shift > 122 {
-                res = (ch_i8 + shift - 122 + 96) as char;
-            } else {
-                res = (ch_i8 + shift) as char;
+        unshift @ i8::MIN..=-1 => {
+            let unshift = -unshift;
+            match ch_i8 {
+                65..=90 => {
+                    if ch_i8 - unshift < 65 {
+                        let diff = 65 - (ch_i8 - unshift);
+                        res = ((90 - diff) + 1) as u8 as char;
+                    } else {
+                        res = (ch_i8 - unshift) as u8 as char;
+                    }
+                }
+                97..=122 => {
+                    if ch_i8 - unshift < 97 {
+                        let diff = 97 - (ch_i8 - unshift);
+                        res = ((122 - diff) + 1) as u8 as char;
+                    } else {
+                        res = (ch_i8 - unshift) as u8 as char;
+                    }
+                }
+                _ => { /* return the same character that it receieved */ }
             }
         }
-        _ => { /* return the same character that it receieved */ }
     }
     res
 }
