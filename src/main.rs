@@ -5,9 +5,51 @@ use std::{collections::HashMap, env};
 use rand::{thread_rng, Rng};
 fn main() {
     test_caesar();
+    test_vigenere();
+}
+
+// A vigenere cipher is different in that you provide it a key, and based on the
+// numerical position of the key, you apply a shift
+// Todo: Test passing optional keys to this function. If not use a default like "duh"
+fn test_vigenere() {
+    let names = vec![
+        "Leonardo",
+        "Schrodinger",
+        "Heisenberg",
+        "Einstein",
+        "Pauli",
+        "Neumann",
+    ];
+    let key = "duh";
+    let shift_vals: Vec<u8> = (|| {
+        key.to_lowercase()
+            .chars()
+            .map(|ch| ch as u8 - 97)
+            .collect::<Vec<u8>>()
+    })();
+    let mut keys = shift_vals.into_iter().cycle();
+    let mut encrypted_names: Vec<String> = vec![];
+    for name in names {
+        encrypted_names.push(vigenere::encrypt(&name, &mut keys));
+    }
+    dbg!(encrypted_names);
+}
+
+mod vigenere {
+    #![allow(unused)]
+    use super::*;
+    pub(crate) fn encrypt(data: &str, keys: &mut impl Iterator<Item = u8>) -> String {
+        let mut res = String::with_capacity(data.len());
+        res = data
+            .chars()
+            .map(|ch| char_shift(ch, keys.next().unwrap() as i8))
+            .collect();
+        res
+    }
 }
 
 fn test_caesar() {
+    // A caesar cipher simply all letters of a message by a fixed amount
     if env::args().any(|x| x == "trace" || x == "t") {
         env::set_var("RUST_BACKTRACE", "1");
     }
@@ -20,6 +62,7 @@ fn test_caesar() {
         // populate our map with all possible shift values
         shift_map.insert(i, false);
     }
+    // Test for all possible shift combinations, terminate only when all values have been tested
     loop {
         if shift_map.values().all(|shift_val| *shift_val == true) {
             break;
@@ -28,6 +71,9 @@ fn test_caesar() {
         // println!("Caesar shift value generated: {}", shift);
         shift_map.insert(shift, true);
 
+        // Note the `&` before `names`. That is intentional because a for..loop consmues iterators by
+        // calling into_iter() on our iterable. To prevent that, since we are using nested loops, we
+        // use reference values
         for &name in &names {
             let encrypted = caesar::encrypt(name, shift);
             // println!("{} encrypted to {}", name, encrypted);
@@ -36,6 +82,7 @@ fn test_caesar() {
     }
 }
 mod caesar {
+    #![allow(unused)]
     use super::*;
     pub(crate) fn decrypt(cypher: &str, key: i8) -> String {
         let mut data = String::with_capacity(cypher.len());
