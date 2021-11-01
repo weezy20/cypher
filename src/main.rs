@@ -3,8 +3,11 @@
 use std::{collections::HashMap, env};
 
 use rand::{thread_rng, Rng};
-
 fn main() {
+    test_caesar();
+}
+
+fn test_caesar() {
     if env::args().any(|x| x == "trace" || x == "t") {
         env::set_var("RUST_BACKTRACE", "1");
     }
@@ -26,36 +29,40 @@ fn main() {
         shift_map.insert(shift, true);
 
         for &name in &names {
-            let encrypted = encrypt_caesar(name, shift);
+            let encrypted = caesar::encrypt(name, shift);
             // println!("{} encrypted to {}", name, encrypted);
-            assert_eq!(name, decrypt_caesar(&encrypted, shift));
+            assert_eq!(name, caesar::decrypt(&encrypted, shift));
         }
     }
 }
-fn decrypt_caesar(cypher: &str, key: i8) -> String {
-    let mut data = String::with_capacity(cypher.len());
-    for ch in cypher.chars() {
-        data.push(char_shift(ch, -key));
+mod caesar {
+    use super::*;
+    pub(crate) fn decrypt(cypher: &str, key: i8) -> String {
+        let mut data = String::with_capacity(cypher.len());
+        for ch in cypher.chars() {
+            data.push(char_shift(ch, -key));
+        }
+        data
     }
-    data
+    pub(crate) fn encrypt(data: &str, shift: i8) -> String {
+        if shift == 0 || shift > 25 {
+            println!(
+                "Cannot apply caesar cipher with a shift value of {} ",
+                shift
+            );
+            return String::from(data);
+        }
+        let mut cypher = String::with_capacity(data.len());
+        // There is a mode of operation and a permutation
+        // The mode of operation here is to go through each letter of this string
+        // and the permutation is to shift by a certain amount
+        for ch in data.chars() {
+            cypher.push(char_shift(ch, shift));
+        }
+        cypher
+    }
 }
-fn encrypt_caesar(data: &str, shift: i8) -> String {
-    if shift == 0 || shift > 25 {
-        println!(
-            "Cannot apply caesar cipher with a shift value of {} ",
-            shift
-        );
-        return String::from(data);
-    }
-    let mut cypher = String::with_capacity(data.len());
-    // There is a mode of operation and a permutation
-    // The mode of operation here is to go through each letter of this string
-    // and the permutation is to shift by a certain amount
-    for ch in data.chars() {
-        cypher.push(char_shift(ch, shift));
-    }
-    cypher
-}
+
 fn char_shift(ch: char, shift: i8) -> char {
     if shift == 0 || shift > 25 {
         return ch;
@@ -63,7 +70,7 @@ fn char_shift(ch: char, shift: i8) -> char {
     let mut res = ch;
     let ch_i8 = ch as i8;
     match shift {
-        // Encryption phase
+        // Positive Shift
         shift @ 0..=i8::MAX => {
             match ch_i8 {
                 65..=90 => {
@@ -88,6 +95,7 @@ fn char_shift(ch: char, shift: i8) -> char {
                 _ => { /* return the same character that it receieved */ }
             }
         }
+        // Negative Shift
         unshift @ i8::MIN..=-1 => {
             let unshift = -unshift;
             match ch_i8 {
