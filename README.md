@@ -10,3 +10,12 @@ can brute force this approach. If you don't you can look at the cipher text and 
 a pattern such as `WQL` twice in a sentence, you can estimate that the key's length might be 3. Another step is frequency analysis where you can exploit the uneven distribution of letters
 in the language. The letter E is the most common letter in the English language so if your cipher text has a lot of X's, chances are that X corresponds to E. Using a combination of these techniques
 and enough computational power, one may easily crack a Vigenère cipher.
+
+
+## Usage
+On a successful run, with default values, you should see only the Vigenère function output. You can pass in your own data and key to use in the Vigenère cipher.
+`cargo run -- --key <your key> <data to encrypt>`. Key and Data are both optional, the defaults will be used if not provided. Checking is done using assertion macros so you need not pinch your eyeballs to check each character for correct decryption.
+
+### Options 
+- `-k`/`--key` : Provide your own Vigenère key
+- `t`/`--trace`: Turn on rust stacktracing
