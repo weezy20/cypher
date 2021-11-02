@@ -1,26 +1,63 @@
 #![deny(clippy::pedantic)]
+
 mod caesar;
 mod vigenere;
-use std::{collections::HashMap, env};
+
 use rand::{thread_rng, Rng};
+use std::{collections::HashMap, env};
+use structopt::StructOpt;
+
+#[derive(Debug, Clone, StructOpt)]
+#[structopt(
+    name = "Vigenere User Configuration",
+    about = "Pass in user key and data for encryption"
+)]
+struct Config {
+    /// Key to use in Vigenere cipher
+    #[structopt(short, long, name = "vigenere_key", required_if("data", "Some(_)"))]
+    key: Option<String>,
+    // An alternative is to use #[structopt(default_value= {...})]
+    /// Data to encrypt
+    #[structopt(name = "vigenere_data")]
+    data: Option<String>,
+    // argument to ignore
+    #[structopt(short, long)]
+    trace: bool,
+}
 fn main() {
-    test_caesar();
-    test_vigenere();
+    let config: Config = Config::from_args();
+    // if env::args().any(|x| x == "--trace" || x == "-t") {
+    //     env::set_var("RUST_BACKTRACE", "1");
+    // }
+    if config.trace {
+        env::set_var("RUST_BACKTRACE", "1")
+    }
+    test_vigenere(&config);
+    test_caesar();  
 }
 
 // A vigenere cipher is different in that you provide it a key, and based on the
 // numerical position of the key, you apply a shift
-// Todo: Test passing optional keys to this function. If not use a default like "duh"
-fn test_vigenere() {
-    let names = vec![
-        "Leonardo",
-        "Schrodinger",
-        "Heisenberg",
-        "Einstein",
-        "Pauli",
-        "Neumann",
-    ];
-    let key = "duh";
+
+#[allow(dead_code)]
+fn test_vigenere(config: &Config) {
+    let names = if let Some(ref data) = config.data {
+        vec![&**data]
+    } else {
+        vec![
+            "Leonardo",
+            "Schrodinger",
+            "Heisenberg",
+            "Einstein",
+            "Pauli",
+            "Neumann",
+        ]
+    };
+    let key = if let Some(ref key) = config.key {
+        &**key
+    } else {
+        "duh"
+    };
 
     let mut encrypted_names: Vec<String> = vec![];
     for &name in &names {
@@ -32,15 +69,12 @@ fn test_vigenere() {
         decrypted_names.push(vigenere::decrypt(cipher, &key));
     }
     assert_eq!(&decrypted_names, &names);
-    // println!("Encrypted names: {:?}", encrypted_names);
-    // println!("Decrypted names: {:?}", decrypted_names);
+    println!("Encrypted names: {:?}", encrypted_names);
+    println!("Decrypted names: {:?}", decrypted_names);
 }
-
+#[allow(dead_code)]
 fn test_caesar() {
     // A caesar cipher simply all letters of a message by a fixed amount
-    if env::args().any(|x| x == "trace" || x == "t") {
-        env::set_var("RUST_BACKTRACE", "1");
-    }
     // assert_eq!('c', char_shift('z', 3));
     let names = vec!["Joseph", "Matthew", "Jesus", "Zorba", "Abhishek"];
     let mut rng = thread_rng();
@@ -82,14 +116,18 @@ fn char_shift(ch: char, shift: i8) -> char {
             match ch_i8 {
                 65..=90 => {
                     // Logical operators short circuit in Rust so we can write this:
-                    if ch_i8.overflowing_add(shift).1 || ch_i8.overflowing_add(shift).0 > 90 {
+                    if ch_i8.overflowing_add(shift).1
+                        || ch_i8.overflowing_add(shift).0 > 90
+                    {
                         res = (ch_i8 + (shift - 90 + 64)) as u8 as char;
                     } else {
                         res = (ch_i8 + shift) as u8 as char;
                     }
                 }
                 97..=122 => {
-                    if ch_i8.overflowing_add(shift).1 || ch_i8.overflowing_add(shift).0 > 122 {
+                    if ch_i8.overflowing_add(shift).1
+                        || ch_i8.overflowing_add(shift).0 > 122
+                    {
                         res = (ch_i8 + (shift - 122 + 96)) as u8 as char;
                     } else {
                         res = (ch_i8 + shift) as u8 as char;
