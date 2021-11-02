@@ -21,30 +21,50 @@ fn test_vigenere() {
         "Neumann",
     ];
     let key = "duh";
-    let shift_vals: Vec<u8> = (|| {
-        key.to_lowercase()
-            .chars()
-            .map(|ch| ch as u8 - 97)
-            .collect::<Vec<u8>>()
-    })();
-    let mut keys = shift_vals.into_iter().cycle();
+
     let mut encrypted_names: Vec<String> = vec![];
-    for name in names {
-        encrypted_names.push(vigenere::encrypt(&name, &mut keys));
+    for &name in &names {
+        encrypted_names.push(vigenere::encrypt(&name, &key));
     }
-    dbg!(encrypted_names);
+
+    let mut decrypted_names: Vec<String> = Vec::with_capacity(encrypted_names.len());
+    for cipher in encrypted_names.iter() {
+        decrypted_names.push(vigenere::decrypt(cipher, &key));
+    }
+    assert_eq!(&decrypted_names, &names);
+    // println!("Encrypted names: {:?}", encrypted_names);
+    // println!("Decrypted names: {:?}", decrypted_names);
 }
 
 mod vigenere {
     #![allow(unused)]
     use super::*;
-    pub(crate) fn encrypt(data: &str, keys: &mut impl Iterator<Item = u8>) -> String {
+    pub(crate) fn encrypt(data: &str, key: &str) -> String {
+        let mut keys = get_shift_vals(&key);
         let mut res = String::with_capacity(data.len());
         res = data
             .chars()
             .map(|ch| char_shift(ch, keys.next().unwrap() as i8))
             .collect();
         res
+    }
+    pub(crate) fn decrypt(data: &str, key: &str) -> String {
+        // We cannot accept the previous keys as the cycle may have left it in an unsound state, so
+        // we instantiate our own cycle here:
+        let mut keys = get_shift_vals(&key);
+
+        data.chars()
+            .map(|ch| char_shift(ch, -(keys.next().unwrap() as i8)))
+            .collect::<String>()
+    }
+    // Take a string key and return a cycle over shift values which are positions of individual letters
+    fn get_shift_vals(key: &str) -> impl Iterator<Item = u8> {
+        key.to_lowercase()
+            .chars()
+            .map(|ch| ch as u8 - 97)
+            .collect::<Vec<u8>>()
+            .into_iter()
+            .cycle()
     }
 }
 
