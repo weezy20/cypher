@@ -1,7 +1,7 @@
 #![deny(clippy::pedantic)]
-
+mod caesar;
+mod vigenere;
 use std::{collections::HashMap, env};
-
 use rand::{thread_rng, Rng};
 fn main() {
     test_caesar();
@@ -69,66 +69,6 @@ fn test_caesar() {
         }
     }
 }
-mod vigenere {
-    #![allow(unused)]
-    use super::*;
-    pub(crate) fn encrypt(data: &str, key: &str) -> String {
-        let mut keys = get_shift_vals(&key);
-        let mut res = String::with_capacity(data.len());
-        res = data
-            .chars()
-            .map(|ch| char_shift(ch, keys.next().unwrap() as i8))
-            .collect();
-        res
-    }
-    pub(crate) fn decrypt(data: &str, key: &str) -> String {
-        // We cannot accept the previous keys as the cycle may have left it in an unsound state, so
-        // we instantiate our own cycle here:
-        let mut keys = get_shift_vals(&key);
-
-        data.chars()
-            .map(|ch| char_shift(ch, -(keys.next().unwrap() as i8)))
-            .collect::<String>()
-    }
-    // Take a string key and return a cycle over shift values which are positions of individual letters
-    fn get_shift_vals(key: &str) -> impl Iterator<Item = u8> {
-        key.to_lowercase()
-            .chars()
-            .map(|ch| ch as u8 - 97)
-            .collect::<Vec<u8>>()
-            .into_iter()
-            .cycle()
-    }
-}
-
-mod caesar {
-    #![allow(unused)]
-    use super::*;
-    pub(crate) fn decrypt(cypher: &str, key: i8) -> String {
-        let mut data = String::with_capacity(cypher.len());
-        for ch in cypher.chars() {
-            data.push(char_shift(ch, -key));
-        }
-        data
-    }
-    pub(crate) fn encrypt(data: &str, shift: i8) -> String {
-        if shift == 0 || shift > 25 {
-            println!(
-                "Cannot apply caesar cipher with a shift value of {} ",
-                shift
-            );
-            return String::from(data);
-        }
-        let mut cypher = String::with_capacity(data.len());
-        // There is a mode of operation and a permutation
-        // The mode of operation here is to go through each letter of this string
-        // and the permutation is to shift by a certain amount
-        for ch in data.chars() {
-            cypher.push(char_shift(ch, shift));
-        }
-        cypher
-    }
-}
 
 fn char_shift(ch: char, shift: i8) -> char {
     if shift == 0 || shift > 25 {
@@ -142,18 +82,14 @@ fn char_shift(ch: char, shift: i8) -> char {
             match ch_i8 {
                 65..=90 => {
                     // Logical operators short circuit in Rust so we can write this:
-                    if ch_i8.overflowing_add(shift).1
-                        || ch_i8.overflowing_add(shift).0 > 90
-                    {
+                    if ch_i8.overflowing_add(shift).1 || ch_i8.overflowing_add(shift).0 > 90 {
                         res = (ch_i8 + (shift - 90 + 64)) as u8 as char;
                     } else {
                         res = (ch_i8 + shift) as u8 as char;
                     }
                 }
                 97..=122 => {
-                    if ch_i8.overflowing_add(shift).1
-                        || ch_i8.overflowing_add(shift).0 > 122
-                    {
+                    if ch_i8.overflowing_add(shift).1 || ch_i8.overflowing_add(shift).0 > 122 {
                         res = (ch_i8 + (shift - 122 + 96)) as u8 as char;
                     } else {
                         res = (ch_i8 + shift) as u8 as char;
