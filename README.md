@@ -18,4 +18,4 @@ On a successful run, with default values, you should see only the Vigenère func
 
 ### Options 
 - `-k`/`--key` : Provide your own Vigenère key
-- `t`/`--trace`: Turn on rust stacktracing
+- `-t`/`--trace`: Turn on rust stacktracing
